@@ -257,7 +257,10 @@
             let previousRate = 1
 
             function setRate(rate) {
-                previousRate = targetVideo.playbackRate
+                if (targetVideo.playbackRate != previousRate) {
+                    previousRate = targetVideo.playbackRate
+                }
+
                 targetVideo.playbackRate = rate
                 console.log('Playback rate has been set to ' + rateSetting.value)
                 notify('Rate: x' + rate)
