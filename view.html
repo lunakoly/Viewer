@@ -66,7 +66,7 @@
                 text-align: center;
             }
 
-            @keyframes rateNotification {
+            @keyframes notificationBox {
                 from {
                     opacity: 1;
                 }
@@ -81,10 +81,10 @@
             }
 
             .notification {
-                animation: rateNotification 2s ease-in;
+                animation: notificationBox 2s ease-in;
             }
 
-            #rateNotification {
+            #notificationBox {
                 opacity: 0;
                 pointer-events: none;
 
@@ -107,7 +107,7 @@
             </div>
         </div>
 
-        <div class="box" id="rateNotification">Rate: default</div>
+        <div class="box" id="notificationBox">Rate: default</div>
 
         <script>
             Object.prototype.updateWith = function(other) {
@@ -134,7 +134,8 @@
             let speedW = 1.6
             let speedE = 2.5
 
-            let timeShiftInSeconds = 5
+            let shiftTime = true
+            let timeShiftInSeconds = 10
 
             const defaultState = {
                 overlay: false,
@@ -183,21 +184,21 @@
                         }
                     },
                     'd': function(e) {
-                        targetVideo.currentTime -= timeShiftInSeconds
-                        setRate(previousRate)
+                        shitTimeAndSetRate(previousRate)
                     },
                     'q': function(e) {
-                        targetVideo.currentTime -= timeShiftInSeconds
-                        setRate(speedQ)
+                        shitTimeAndSetRate(speedQ)
                     },
                     'w': function(e) {
-                        targetVideo.currentTime -= timeShiftInSeconds
-                        setRate(speedW)
+                        shitTimeAndSetRate(speedW)
                     },
                     'e': function(e) {
-                        targetVideo.currentTime -= timeShiftInSeconds
-                        setRate(speedE)
-                    }
+                        shitTimeAndSetRate(speedE)
+                    },
+                    's': function(e) {
+                        shiftTime = !shiftTime
+                        notify('Time Shift: ' + (shiftTime ? 'ON' : 'OFF'))
+                    },
                 },
 
                 onEnter: function() {},
@@ -241,27 +242,36 @@
                 currentState.onEnter()
             }
 
-            let previousRate = 1
-
             function updateRate() {
                 setRate(parseFloat(rateSetting.value))
             }
 
+            function shitTimeAndSetRate(rate) {
+                if (shiftTime) {
+                    targetVideo.currentTime -= shiftTime
+                }
+
+                setRate(rate)
+            }
+
+            let previousRate = 1
+
             function setRate(rate) {
                 previousRate = targetVideo.playbackRate
                 targetVideo.playbackRate = rate
-
                 console.log('Playback rate has been set to ' + rateSetting.value)
-
-                rateNotification.classList.remove('notification')
-                rateNotification.parentNode.replaceChild(
-                    rateNotification.cloneNode(true),
-                    rateNotification,
-                )
-                rateNotification.classList.add('notification')
-                rateNotification.innerText = 'Rate: x' + rate
-
+                notify('Rate: x' + rate)
                 setState(defaultState)
+            }
+
+            function notify(message) {
+                notificationBox.classList.remove('notification')
+                notificationBox.parentNode.replaceChild(
+                    notificationBox.cloneNode(true),
+                    notificationBox,
+                )
+                notificationBox.classList.add('notification')
+                notificationBox.innerText = message
             }
 
             function updateFile() {
@@ -269,10 +279,8 @@
                 targetVideo.src = url // filePicker.value
                 updateRate()
                 targetVideo.focus()
-                // targetVideo.play()
             }
 
-            // rateSetting.addEventListener('change', e => updateRate())
             filePicker.addEventListener('change', e => updateFile())
 
             document.body.addEventListener('keydown', e => {
