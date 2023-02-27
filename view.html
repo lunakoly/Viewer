@@ -135,7 +135,7 @@
             let speedE = 2.5
 
             let shiftTime = false
-            let timeShiftInSeconds = 10
+            let timeShiftInSeconds = 5
 
             const defaultState = {
                 overlay: false,
@@ -248,7 +248,7 @@
 
             function shitTimeAndSetRate(rate) {
                 if (shiftTime) {
-                    targetVideo.currentTime -= shiftTime
+                    targetVideo.currentTime -= timeShiftInSeconds * targetVideo.playbackRate
                 }
 
                 setRate(rate)
