@@ -8,53 +8,286 @@
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+
+                background-color: black;
             }
 
-            video {
+            #targetVideo {
                 width: 100%;
+                height: 100vh;
+            }
+
+            #filePicker {
+                position: absolute;
+                top: -100%;
+            }
+
+            #overlay {
+                z-index: 1;
+                position: fixed;
+                height: 100%;
+                width: 100%;
+                left: 0;
+                top: 0;
+
+                background-color: rgba(0, 0, 0, 0.84);
+
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .box {
+                background: #212121;
+                padding: 0.5em;
+                border-radius: 0.6em;
+                color: white;
+                border: 1px solid #5c5c5c;
+            }
+
+            input[type="text"] {
+                appearance: none;
+
+                background: #424242;
+                border-radius: 0.4em;
+                border: 1px solid #666565;
+
+                padding: 0.2em 0.5em;
+                color: white;
+
+                font-size: 1rem;
+            }
+
+            .small-input {
+                width: 4em;
+                padding-left: 0em;
+                padding-right: 0em;
+                text-align: center;
+            }
+
+            @keyframes rateNotification {
+                from {
+                    opacity: 1;
+                }
+
+                50% {
+                    opacity: 1;
+                }
+
+                to {
+                    opacity: 0;
+                }
+            }
+
+            .notification {
+                animation: rateNotification 2s ease-in;
+            }
+
+            #rateNotification {
+                opacity: 0;
+                pointer-events: none;
+
+                position: absolute;
+                right: 3em;
+                bottom: 3em;
             }
         </style>
     </head>
 
     <body>
-        <video width="800" height="600" src="target.mp4" id="target_video" controls></video>
+        <video width="800" height="600" src="target.mp4" id="targetVideo" controls autoplay></video>
 
-        <label for="rate_setting">Playback Rate:</label>
-        <input type="text" id="rate_setting" value="1.0">
+        <input id="filePicker" type="file" value="target.mp4" autocomplete="off">
 
-        <label for="file_picker">File:</label>
-        <input id="file_picker" type="file" value="target.mp4" autocomplete="off">
+        <div id="overlay">
+            <div class="box" id="rateSettingBox">
+                <label for="rateSetting">Playback Rate:</label>
+                <input type="text" id="rateSetting" value="1.0" class="small-input">
+            </div>
+        </div>
+
+        <div class="box" id="rateNotification">Rate: default</div>
 
         <script>
+            Object.prototype.updateWith = function(other) {
+                // `({}).updateWith` provides a deep copy
+
+                for (let key in other) {
+                    if (other[key].__proto__ != Object.prototype) {
+                        this[key] = other[key]
+                        continue
+                    }
+
+                    if (!(key in this) || this[key].__proto__ != Object.prototype) {
+                        this[key] = {}
+                    }
+
+                    this[key].updateWith(other[key])
+                }
+
+                return this
+            }
+        </script>
+        <script>
+            let speedQ = 1
+            let speedW = 1.6
+            let speedE = 2.5
+
+            let timeShiftInSeconds = 5
+
+            const defaultState = {
+                overlay: false,
+                rateSettingBox: false,
+                tabNavigationStart: targetVideo,
+
+                keyListeners: {
+                    'r': function(e) {
+                        setState(rateSettingState)
+                    },
+                    'f': function(e) {
+                        const target = document.body
+
+                        // Thanks:
+                        // https://stackoverflow.com/questions/36672561/how-to-exit-fullscreen-onclick-using-javascript
+
+                        let isInFullScreen = document.fullscreenElement && document.fullscreenElement !== null
+                            || document.webkitFullscreenElement && document.webkitFullscreenElement !== null
+                            || document.mozFullScreenElement && document.mozFullScreenElement !== null
+                            || document.msFullscreenElement && document.msFullscreenElement !== null
+
+                        let requestFullScreen = target.requestFullscreen
+                            || target.webkitRequestFullscreen
+                            || target.mozRequestFullScreen
+                            || target.msRequestFullscreen
+
+                        let exitFullScreen = document.exitFullscreen
+                            || document.webkitExitFullscreen
+                            || document.mozCancelFullScreen
+                            || document.msExitFullscreen
+
+                        if (isInFullScreen) {
+                            exitFullScreen.call(document)
+                        } else {
+                            requestFullScreen.call(target)
+                        }
+                    },
+                    'o': function(e) {
+                        filePicker.click()
+                    },
+                    ' ': function(e) {
+                        if (targetVideo.paused) {
+                            targetVideo.play()
+                        } else {
+                            targetVideo.pause()
+                        }
+                    },
+                    'd': function(e) {
+                        targetVideo.currentTime -= timeShiftInSeconds
+                        setRate(previousRate)
+                    },
+                    'q': function(e) {
+                        targetVideo.currentTime -= timeShiftInSeconds
+                        setRate(speedQ)
+                    },
+                    'w': function(e) {
+                        targetVideo.currentTime -= timeShiftInSeconds
+                        setRate(speedW)
+                    },
+                    'e': function(e) {
+                        targetVideo.currentTime -= timeShiftInSeconds
+                        setRate(speedE)
+                    }
+                },
+
+                onEnter: function() {},
+            }
+
+            const rateSettingState = {
+                overlay: true,
+                rateSettingBox: true,
+                tabNavigationStart: rateSetting,
+
+                keyListeners: {
+                    'r': function(e) {
+                        rateSetting.value = targetVideo.playbackRate
+                        setState(defaultState)
+                    },
+                    'enter': function(e) {
+                        updateRate()
+                    },
+                },
+
+                onEnter: function() {
+                    rateSetting.value = targetVideo.playbackRate
+                    rateSetting.select()
+                },
+            }
+
+            let currentState = defaultState
+
+            function setState(state) {
+                currentState = ({}).updateWith(defaultState).updateWith(state)
+
+                overlay.style.display = currentState.overlay ? 'flex' : 'none'
+                rateSettingBox.style.display = currentState.rateSettingBox ? 'block' : 'none'
+
+                if (currentState.tabNavigationStart) {
+                    currentState.tabNavigationStart.focus()
+                } else {
+                    document.activeElement.blur()
+                }
+
+                currentState.onEnter()
+            }
+
+            let previousRate = 1
+
             function updateRate() {
-                target_video.playbackRate = parseFloat(rate_setting.value)
-                console.log('Playback rate has been set to ' + rate_setting.value)
-                target_video.focus()
+                setRate(parseFloat(rateSetting.value))
+            }
+
+            function setRate(rate) {
+                previousRate = targetVideo.playbackRate
+                targetVideo.playbackRate = rate
+
+                console.log('Playback rate has been set to ' + rateSetting.value)
+
+                rateNotification.classList.remove('notification')
+                rateNotification.parentNode.replaceChild(
+                    rateNotification.cloneNode(true),
+                    rateNotification,
+                )
+                rateNotification.classList.add('notification')
+                rateNotification.innerText = 'Rate: x' + rate
+
+                setState(defaultState)
             }
 
             function updateFile() {
-                let url = URL.createObjectURL(file_picker.files[0])
-                target_video.src = url // file_picker.value
+                let url = URL.createObjectURL(filePicker.files[0])
+                targetVideo.src = url // filePicker.value
                 updateRate()
+                targetVideo.focus()
+                // targetVideo.play()
             }
 
-            rate_setting.addEventListener('change', e => updateRate())
-            file_picker.addEventListener('change', e => updateFile())
+            // rateSetting.addEventListener('change', e => updateRate())
+            filePicker.addEventListener('change', e => updateFile())
 
             document.body.addEventListener('keydown', e => {
-                if (e.key.toLowerCase() == 'p') {
+                for (key in currentState.keyListeners) {
+                    if (e.key.toLowerCase() != key) {
+                        continue
+                    }
+
                     e.preventDefault()
-                    rate_setting.focus()
-                    rate_setting.select()
-                } else if (e.key.toLowerCase() == 'escape') {
-                    e.preventDefault()
-                    rate_setting.blur()
-                } else if (e.key.toLowerCase() == 'f') {
-                    target_video.requestFullscreen()
+                    currentState.keyListeners[key](e)
                 }
             })
 
-            updateFile()
+            setState(defaultState)
+            // updateFile()
         </script>
     </body>
 </html>
