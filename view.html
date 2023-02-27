@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <title>Viewer</title>
+
+        <style>
+            body {
+                margin: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+
+            video {
+                width: 100%;
+            }
+        </style>
+    </head>
+
+    <body>
+        <video width="800" height="600" src="target.mp4" id="target_video" controls></video>
+
+        <label for="rate_setting">Playback Rate:</label>
+        <input type="text" id="rate_setting" value="1.0">
+
+        <label for="file_picker">File:</label>
+        <input id="file_picker" type="file" value="target.mp4" autocomplete="off">
+
+        <script>
+            function updateRate() {
+                target_video.playbackRate = parseFloat(rate_setting.value)
+                console.log('Playback rate has been set to ' + rate_setting.value)
+                target_video.focus()
+            }
+
+            function updateFile() {
+                let url = URL.createObjectURL(file_picker.files[0])
+                target_video.src = url // file_picker.value
+                updateRate()
+            }
+
+            rate_setting.addEventListener('change', e => updateRate())
+            file_picker.addEventListener('change', e => updateFile())
+
+            document.body.addEventListener('keydown', e => {
+                if (e.key.toLowerCase() == 'p') {
+                    e.preventDefault()
+                    rate_setting.focus()
+                    rate_setting.select()
+                } else if (e.key.toLowerCase() == 'escape') {
+                    e.preventDefault()
+                    rate_setting.blur()
+                } else if (e.key.toLowerCase() == 'f') {
+                    target_video.requestFullscreen()
+                }
+            })
+
+            updateFile()
+        </script>
+    </body>
+</html>
