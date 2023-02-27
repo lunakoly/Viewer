@@ -137,6 +137,8 @@
             let shiftTime = false
             let timeShiftInSeconds = 5
 
+            let timeStepSizeInSeconds = 5
+
             const defaultState = {
                 overlay: false,
                 rateSettingBox: false,
@@ -198,6 +200,12 @@
                     's': function(e) {
                         shiftTime = !shiftTime
                         notify('Time Shift: ' + (shiftTime ? 'ON' : 'OFF'))
+                    },
+                    'h': function(e) {
+                        targetVideo.currentTime -= timeStepSizeInSeconds * targetVideo.playbackRate
+                    },
+                    'l': function(e) {
+                        targetVideo.currentTime += timeStepSizeInSeconds * targetVideo.playbackRate
                     },
                 },
 
